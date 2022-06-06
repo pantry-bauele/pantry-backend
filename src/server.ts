@@ -132,9 +132,12 @@ app.get('/get-account', async (req, res) => {
 
     let accountMapper = new AccountMapper();
     account = await accountMapper.findAccountByEmail(data);
-    console.log('accountFound = ', account);
-
-    res.send(account);
+    if (account) {
+        console.log('accountFound = ', account);
+        res.status(200).send(account);
+    } else {
+        res.status(404).send('Could not find account');
+    }
 });
 
 app.get('/get-items', async (req, res) => {
