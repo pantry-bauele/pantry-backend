@@ -11,6 +11,7 @@ type ItemSize = {
 };
 
 export class Item {
+    id = '';
     name = '';
     brand = '';
     calories = -1;
@@ -20,6 +21,14 @@ export class Item {
     servingSize: ItemSize = { amount: -1, unit: '' };
 
     constructor() {}
+
+    setId(id: string) {
+        this.id = id;
+    }
+
+    getId() {
+        return this.id;
+    }
 
     setName(name: string) {
         this.name = name;

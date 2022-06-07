@@ -140,7 +140,7 @@ app.get('/get-account', async (req, res) => {
     }
 });
 
-app.get('/get-items', async (req, res) => {
+app.get('/get-all-items', async (req, res) => {
     console.log(`Attemping item retrieval using ${req.query.emailAddress}`);
 
     if (req.query.emailAddress === undefined) {
@@ -172,7 +172,54 @@ app.get('/get-items', async (req, res) => {
 
     let itemsFound = 0;
     if (account !== undefined && account !== null) {
-        itemsFound = await itemMapper.findItem(item, account);
+        itemsFound = await itemMapper.findAllItemsByAccount(item, account);
+    }
+
+    console.log('itemsFound = ', itemsFound);
+    res.send(itemsFound);
+});
+
+app.get('/get-item', async (req, res) => {
+    console.log(`Attemping item retrieval using ${req.query.emailAddress}`);
+
+    if (
+        req.query.emailAddress === undefined ||
+        req.query.itemId === undefined
+    ) {
+        return;
+    }
+
+    /*  req.query will be a JSON string, so it will need to be parsed
+    and converted back into an Account object. */
+    let data, object, account;
+    data = req.query.emailAddress;
+    if (typeof data === 'string') {
+        console.log('data = ', data);
+
+        //object = JSON.parse(data);
+    } else {
+        const error = new Error('Could not read data sent from client');
+        throw error;
+    }
+
+    let accountMapper = new AccountMapper();
+    if (typeof req.query.emailAddress === 'string') {
+        account = await accountMapper.findAccountByEmail(
+            req.query.emailAddress
+        );
+    }
+
+    let itemMapper = new ItemMapper();
+    let item = new Item();
+
+    let itemId: string = '';
+    if (typeof req.query.itemId === 'string') {
+        itemId = req.query.itemId;
+    }
+
+    let itemsFound = 0;
+    if (account !== undefined && account !== null) {
+        itemsFound = await itemMapper.findItem(item, itemId, account);
     }
 
     console.log('itemsFound = ', itemsFound);

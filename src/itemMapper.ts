@@ -69,8 +69,8 @@ export class ItemMapper {
         }
     }
 
-    //  Find an item in a user's account
-    async findItem(item: Item, account: Account) {
+    //  Find all item in a user's account
+    async findAllItemsByAccount(item: Item, account: Account) {
         await databaseClient.connect();
         const collection = databaseClient
             .db('pantry-db-dummy')
@@ -83,6 +83,28 @@ export class ItemMapper {
         let docs;
         try {
             docs = await collection.find(queryFilter).toArray();
+        } catch (err) {
+            console.log(err);
+        } finally {
+            await databaseClient.close();
+            return docs;
+        }
+    }
+
+    async findItem(item: Item, itemId: string, account: Account) {
+        await databaseClient.connect();
+        const collection = databaseClient
+            .db('pantry-db-dummy')
+            .collection('user-items');
+
+        let queryFilter = item.getSpecifiedProperties();
+        queryFilter.accountId = account.id;
+        queryFilter._id = new ObjectId(itemId);
+        console.log(queryFilter);
+
+        let docs;
+        try {
+            docs = await collection.findOne(queryFilter);
         } catch (err) {
             console.log(err);
         } finally {

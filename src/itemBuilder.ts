@@ -5,6 +5,10 @@ export class ItemBuilder {
         let item = new Item();
         let jsonObject = JSON.parse(jsonString);
 
+        if (jsonObject.id) {
+            item.setId(jsonObject.id);
+        }
+
         if (jsonObject.name) {
             item.setName(jsonObject.name);
         }
