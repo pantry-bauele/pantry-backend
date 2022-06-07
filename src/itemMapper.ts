@@ -56,8 +56,11 @@ export class ItemMapper {
 
         const queryFilter = {
             accountId: account.id,
-            name: item.name,
+            //name: item.name,
+            _id: new ObjectId(item.id),
         };
+
+        console.log('queryFilter == ', queryFilter);
 
         let result = await collection.deleteOne(queryFilter);
         await databaseClient.close();
