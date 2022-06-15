@@ -1,4 +1,4 @@
-import { Item, VendorPrice } from './item';
+import { Item, VendorPrice } from '../pantry-shared/src/item';
 
 export function findCheapestVendor(item: Item) {
     let vendorPrices = item.getVendorPrices();

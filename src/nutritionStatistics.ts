@@ -1,10 +1,10 @@
-import { Item } from './item';
+import { Item } from '../pantry-shared/src/item';
 import {
     validMeasurementUnit,
     toGrams,
     getMeasurementType,
     toMilliliters,
-} from './measurementUnits';
+} from '../pantry-shared/src/measurementUnits';
 
 export type VendorCaloriesPerDollar = {
     vendor: string;

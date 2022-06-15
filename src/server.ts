@@ -9,9 +9,9 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { AccountMapper } from './accountMapper';
 import { ItemMapper } from './itemMapper';
-import { Item } from './item';
-import { ItemBuilder } from './itemBuilder';
-const envPath = path.join(__dirname, '..', '/.env');
+import { Item } from '../pantry-shared/src/item';
+import { ItemBuilder } from '../pantry-shared/src/itemBuilder';
+const envPath = path.join(__dirname, '..', '../.env');
 dotenv.config({ path: envPath });
 
 const PORT = process.env.SERVER_PORT;

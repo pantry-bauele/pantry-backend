@@ -1,11 +1,11 @@
-import { Item } from './item';
+import { Item } from '../pantry-shared/src/item';
 import { Account } from './account';
 import { MongoClient, ObjectId } from 'mongodb';
 
 // Required to pull data from the .env file
 import dotenv from 'dotenv';
 import path from 'path';
-const envPath = path.join(__dirname, '..', '/.env');
+const envPath = path.join(__dirname, '..', '../.env');
 dotenv.config({ path: envPath });
 
 const DB_USER = process.env.DB_ADMIN_USER;
