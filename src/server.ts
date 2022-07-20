@@ -226,7 +226,7 @@ app.get('/get-item', async (req, res) => {
     res.send(itemsFound);
 });
 
-app.post('/add-item', async (req, res) => {
+app.post('/create-item', async (req, res) => {
     console.log(`Attemping item addition using ${req.query.emailAddress}`);
 
     if (
@@ -259,6 +259,47 @@ app.post('/add-item', async (req, res) => {
     ) {
         await itemMapper.createItem(item, account);
     }
+
+    res.send(true);
+});
+
+app.post('/create-pantry-item', async (req, res) => {
+    console.log(
+        `Attemping pantry item addition using ${req.query.emailAddress}`
+    );
+
+    if (
+        req.query.emailAddress === undefined ||
+        req.query.itemObject === undefined
+    ) {
+        return;
+    }
+
+    let account;
+    let accountMapper = new AccountMapper();
+    if (typeof req.query.emailAddress === 'string') {
+        account = await accountMapper.findAccountByEmail(
+            req.query.emailAddress
+        );
+    }
+
+    /*
+    let item;
+    let itemBuilder = new ItemBuilder();
+    if (typeof req.query.itemObject === 'string') {
+        item = itemBuilder.buildItem(req.query.itemObject);
+    }
+
+    let itemMapper = new ItemMapper();
+    if (
+        account !== undefined &&
+        account !== null &&
+        item !== undefined &&
+        item !== null
+    ) {
+        await itemMapper.createItem(item, account);
+    }
+    */
 
     res.send(true);
 });

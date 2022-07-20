@@ -30,6 +30,7 @@ export class ItemMapper {
         let document = {
             _id: new ObjectId(),
             accountId: account.id,
+
             name: item.getName(),
             brand: item.getBrand(),
             calories: item.getCalories(),

@@ -1,4 +1,4 @@
-import { Item } from '../src/item';
+import { Item } from '../pantry-shared/src/item';
 import { ItemMapper } from '../src/itemMapper';
 import { AccountMapper } from '../src/accountMapper';
 import { Account } from '../src/account';
