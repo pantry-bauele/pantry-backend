@@ -11,6 +11,7 @@ import { AccountMapper } from './accountMapper';
 import { ItemMapper } from './itemMapper';
 import { Item } from '../pantry-shared/src/item';
 import { ItemBuilder } from '../pantry-shared/src/itemBuilder';
+import { PantryItem } from '../pantry-shared/src/pantryItem';
 const envPath = path.join(__dirname, '..', '../.env');
 dotenv.config({ path: envPath });
 
@@ -283,13 +284,12 @@ app.post('/create-pantry-item', async (req, res) => {
         );
     }
 
-    /*
-    let item;
-    let itemBuilder = new ItemBuilder();
-    if (typeof req.query.itemObject === 'string') {
-        item = itemBuilder.buildItem(req.query.itemObject);
-    }
+    let item = req.query.itemObject;
+    let pantryItem = new PantryItem(new Item());
 
+    console.log('item = ', item);
+
+    /*
     let itemMapper = new ItemMapper();
     if (
         account !== undefined &&
@@ -297,7 +297,7 @@ app.post('/create-pantry-item', async (req, res) => {
         item !== undefined &&
         item !== null
     ) {
-        await itemMapper.createItem(item, account);
+        await itemMapper.createPantryItem(pantryItem, account);
     }
     */
 

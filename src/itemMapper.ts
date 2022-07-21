@@ -1,4 +1,5 @@
 import { Item } from '../pantry-shared/src/item';
+import { PantryItem } from '../pantry-shared/src/pantryItem';
 import { Account } from './account';
 import { MongoClient, ObjectId } from 'mongodb';
 
@@ -37,6 +38,31 @@ export class ItemMapper {
             vendorPrices: item.getVendorPrices(),
             totalQuantity: item.getTotalQuantity(),
             servingSize: item.getServingSize(),
+        };
+
+        let result = await collection.insertOne(document);
+        await databaseClient.close();
+
+        if (result.insertedId) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    async createPantryItem(pantryItem: PantryItem, account: Account) {
+        await databaseClient.connect();
+        const collection = databaseClient
+            .db('pantry-db-dummy')
+            .collection('user-pantry');
+
+        let document = {
+            _id: new ObjectId(),
+            accountId: account.id,
+
+            item: pantryItem.getBaseItem(),
+            availableQuantity: pantryItem.getAvailableQuantity(),
+            expirationDate: pantryItem.getExpirationDate(),
         };
 
         let result = await collection.insertOne(document);
