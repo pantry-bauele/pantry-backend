@@ -99,6 +99,53 @@ export class ItemMapper {
         }
     }
 
+    async deletePantryItem(item: PantryItem, account: Account) {
+        await databaseClient.connect();
+        const collection = databaseClient
+            .db('pantry-db-dummy')
+            .collection('user-pantry');
+
+        const queryFilter = {
+            accountId: account.id,
+            //name: item.name,
+            _id: new ObjectId(item.id),
+        };
+
+        console.log('queryFilter == ', queryFilter);
+
+        let result = await collection.deleteOne(queryFilter);
+        await databaseClient.close();
+
+        if (result.deletedCount === 1) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    async findAllPantryItemsByAccount(account: Account) {
+        console.log('user pantry');
+
+        await databaseClient.connect();
+        const collection = databaseClient
+            .db('pantry-db-dummy')
+            .collection('user-pantry');
+
+        let queryFilter = { accountId: '' };
+        queryFilter.accountId = account.id;
+        //console.log(queryFilter);
+
+        let docs;
+        try {
+            docs = await collection.find(queryFilter).toArray();
+        } catch (err) {
+            console.log(err);
+        } finally {
+            await databaseClient.close();
+            return docs;
+        }
+    }
+
     //  Find all item in a user's account
     async findAllItemsByAccount(item: Item, account: Account) {
         await databaseClient.connect();

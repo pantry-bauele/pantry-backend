@@ -11,6 +11,7 @@ import { AccountMapper } from './accountMapper';
 import { ItemMapper } from './itemMapper';
 import { Item } from '../pantry-shared/src/item';
 import { ItemBuilder } from '../pantry-shared/src/itemBuilder';
+import { PantryItemBuilder } from '../pantry-shared/src/pantryItemBuilder';
 import { PantryItem } from '../pantry-shared/src/pantryItem';
 const envPath = path.join(__dirname, '..', '../.env');
 dotenv.config({ path: envPath });
@@ -139,6 +140,46 @@ app.get('/get-account', async (req, res) => {
     } else {
         res.status(404).send('Could not find account');
     }
+});
+
+app.get('/get-all-pantry-items', async (req, res) => {
+    console.log(`Attemping item retrieval using ${req.query.emailAddress}`);
+
+    if (req.query.emailAddress === undefined) {
+        return;
+    }
+
+    /*  req.query will be a JSON string, so it will need to be parsed
+    and converted back into an Account object. */
+    let data, object, account;
+    data = req.query.emailAddress;
+    if (typeof data === 'string') {
+        console.log('data = ', data);
+
+        //object = JSON.parse(data);
+    } else {
+        const error = new Error('Could not read data sent from client');
+        throw error;
+    }
+
+    let accountMapper = new AccountMapper();
+    if (typeof req.query.emailAddress === 'string') {
+        account = await accountMapper.findAccountByEmail(
+            req.query.emailAddress
+        );
+    }
+
+    let itemMapper = new ItemMapper();
+    let item = new Item();
+
+    let itemsFound = 0;
+    if (account !== undefined && account !== null) {
+        //itemsFound = await itemMapper.findAllItemsByAccount(item, account);
+        itemsFound = await itemMapper.findAllPantryItemsByAccount(account);
+    }
+
+    console.log('itemsFound = ', itemsFound);
+    res.send(itemsFound);
 });
 
 app.get('/get-all-items', async (req, res) => {
@@ -284,22 +325,20 @@ app.post('/create-pantry-item', async (req, res) => {
         );
     }
 
-    let item = req.query.itemObject;
-    let pantryItem = new PantryItem(new Item());
+    let pantryItemBuilder = new PantryItemBuilder();
+    let pantryItem = pantryItemBuilder.buildItem(req.query.itemObject);
 
-    console.log('item = ', item);
+    console.log('pantryItem = ', pantryItem);
 
-    /*
     let itemMapper = new ItemMapper();
     if (
         account !== undefined &&
         account !== null &&
-        item !== undefined &&
-        item !== null
+        pantryItem !== undefined &&
+        pantryItem !== null
     ) {
         await itemMapper.createPantryItem(pantryItem, account);
     }
-    */
 
     res.send(true);
 });
@@ -375,6 +414,46 @@ app.post('/delete-item', async (req, res) => {
         console.log('account id = ', account.id);
         account.id = account.id;
         success = await itemMapper.deleteItem(item, account);
+    }
+    console.log('Success = ', success);
+
+    res.send(true);
+});
+
+app.post('/delete-pantry-item', async (req, res) => {
+    console.log(`Attemping item deletion using ${req.query.emailAddress}`);
+
+    if (req.query.emailAddress === undefined) {
+        return;
+    }
+
+    /*  req.query will be a JSON string, so it will need to be parsed
+    and converted back into an Account object. */
+    let account, itemName;
+    itemName = req.query.itemName;
+
+    let accountMapper = new AccountMapper();
+    if (typeof req.query.emailAddress === 'string') {
+        account = await accountMapper.findAccountByEmail(
+            req.query.emailAddress
+        );
+    }
+
+    let itemMapper = new ItemMapper();
+    let pantryItemBuilder = new PantryItemBuilder();
+    let pantryItem = pantryItemBuilder.buildItem(req.query.itemObject);
+
+    if (typeof req.query.itemObject === 'string') {
+        //item = itemBuilder.buildItem(req.query.itemObject);
+    }
+
+    console.log(pantryItem);
+
+    let success;
+    if (account !== undefined && account !== null && pantryItem !== undefined) {
+        console.log('account id = ', account.id);
+        account.id = account.id;
+        success = await itemMapper.deleteItem(pantryItem, account);
     }
     console.log('Success = ', success);
 
