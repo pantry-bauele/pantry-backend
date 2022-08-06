@@ -420,6 +420,44 @@ app.post('/delete-item', async (req, res) => {
     res.send(true);
 });
 
+app.post('/edit-pantry-item', async (req, res) => {
+    console.log(`Attemping item edit using ${req.query.emailAddress}`);
+
+    if (
+        req.query.emailAddress === undefined ||
+        req.query.itemObject === undefined
+    ) {
+        return;
+    }
+
+    let account;
+    let accountMapper = new AccountMapper();
+    if (typeof req.query.emailAddress === 'string') {
+        account = await accountMapper.findAccountByEmail(
+            req.query.emailAddress
+        );
+    }
+
+    let pantryItem;
+    let pantryItemBuilder = new PantryItemBuilder();
+    if (typeof req.query.itemObject === 'string') {
+        pantryItem = pantryItemBuilder.buildItem(req.query.itemObject);
+    }
+
+    let itemMapper = new ItemMapper();
+    if (
+        account !== undefined &&
+        account !== null &&
+        pantryItem !== undefined &&
+        pantryItem !== null
+    ) {
+        await itemMapper.deletePantryItem(pantryItem, account);
+        await itemMapper.createPantryItem(pantryItem, account);
+    }
+
+    res.send(true);
+});
+
 app.post('/delete-pantry-item', async (req, res) => {
     console.log(`Attemping item deletion using ${req.query.emailAddress}`);
 
