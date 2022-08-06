@@ -453,7 +453,7 @@ app.post('/delete-pantry-item', async (req, res) => {
     if (account !== undefined && account !== null && pantryItem !== undefined) {
         console.log('account id = ', account.id);
         account.id = account.id;
-        success = await itemMapper.deleteItem(pantryItem, account);
+        success = await itemMapper.deletePantryItem(pantryItem, account);
     }
     console.log('Success = ', success);
 
