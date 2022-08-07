@@ -16,6 +16,13 @@ import { PantryItem } from '../pantry-shared/src/pantryItem';
 const envPath = path.join(__dirname, '..', '../.env');
 dotenv.config({ path: envPath });
 
+const https = require('node:https');
+const fs = require('node:fs');
+const options = {
+    key: fs.readFileSync('/etc/letsencrypt/live/bauele.com/fullchain.pem'),
+    cert: fs.readFileSync('/etc/letsencrypt/live/bauele.com/privkey.pem'),
+};
+
 const PORT = process.env.SERVER_PORT;
 const DB_USER = process.env.DB_ADMIN_USER;
 const DB_PASS = process.env.DB_ADMIN_PASS;
@@ -31,9 +38,15 @@ app.use(
 );
 
 export async function startServer(server: any) {
+    server = https.createServer(options, app).listen(PORT, function () {
+        console.log('Express server listening on port ' + PORT);
+    });
+
+    /*
     server = await app.listen(PORT, () => {
         console.log('Now listening on port', PORT);
     });
+    */
 
     databaseClient = new MongoClient(DATABASE_URI);
     await databaseClient.connect();
