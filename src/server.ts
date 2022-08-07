@@ -18,13 +18,23 @@ dotenv.config({ path: envPath });
 
 const https = require('node:https');
 const fs = require('node:fs');
+
+let path1 = path.join(
+    __dirname,
+    '../../../..',
+    '/etc/letsencrypt/live/bauele.com/fullchain.pem'
+);
+let path2 = path.join(
+    __dirname,
+    '../../../..',
+    '/etc/letsencrypt/live/bauele.com/privkey.pem'
+);
+console.log('path1 = ', path1);
+console.log('path2 = ', path2);
+
 const options = {
-    key: fs.readFileSync(
-        '../../../../etc/letsencrypt/live/bauele.com/fullchain.pem'
-    ),
-    cert: fs.readFileSync(
-        '../../../..//etc/letsencrypt/live/bauele.com/privkey.pem'
-    ),
+    key: fs.readFileSync(path1, 'utf8'),
+    cert: fs.readFileSync(path2, 'utf8'),
 };
 
 const PORT = process.env.SERVER_PORT;
