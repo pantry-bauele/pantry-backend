@@ -21,13 +21,13 @@ const fs = require('node:fs');
 
 let path1 = path.join(
     __dirname,
-    '../../../..',
-    '/etc/letsencrypt/live/bauele.com/fullchain.pem'
+    '..',
+    '../../../../etc/letsencrypt/live/bauele.com/fullchain.pem'
 );
 let path2 = path.join(
     __dirname,
-    '../../../..',
-    '/etc/letsencrypt/live/bauele.com/privkey.pem'
+    '..',
+    '../../../../etc/letsencrypt/live/bauele.com/privkey.pem'
 );
 console.log('path1 = ', path1);
 console.log('path2 = ', path2);
