@@ -235,13 +235,13 @@ app.get('/get-all-items', async (req, res) => {
         return;
     }
 
-    let itemMapper = new ItemMapper(DATABASE_NAME, 'user-items');
-    let itemsFound = 0;
-    let results;
-    results = await itemMapper.findAllItemsByAccount(account);
+    let results = await findAllItemsByAccount(
+        DATABASE_NAME,
+        'user-items',
+        account
+    );
     if (results) {
-        itemsFound = results.length;
-        console.log(`${itemsFound} items were found`);
+        console.log(`${results.length} items were found`);
     }
 
     res.status(200).send(results);
@@ -523,6 +523,17 @@ app.post('/delete-pantry-item', async (req, res) => {
 
     res.send(true);
 });
+
+async function findAllItemsByAccount(
+    databaseName: string,
+    collectionName: string,
+    account: Account
+) {
+    let itemMapper = new ItemMapper(databaseName, collectionName);
+    let results;
+    results = await itemMapper.findAllItemsByAccount(account);
+    return results;
+}
 
 async function findAccountByEmail(databaseName: string, emailAddress: string) {
     let accountMapper = new AccountMapper(databaseName, 'accounts');
