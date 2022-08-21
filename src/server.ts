@@ -191,21 +191,27 @@ app.get('/get-all-pantry-items', async (req, res) => {
         return;
     }
 
-    let emailAddress = req.query.emailAddress;
-    let accountMapper = new AccountMapper(DATABASE_NAME, 'accounts');
-    let account = await accountMapper.findAccountByEmail(emailAddress);
+    if (!DATABASE_NAME) {
+        res.status(500).send('Fatal server error');
+        return;
+    }
+
+    let account = await findAccountByEmail(
+        DATABASE_NAME,
+        req.query.emailAddress
+    );
     if (!account) {
         res.status(400).send('Account does not exist.');
         return;
     }
 
-    let itemMapper = new ItemMapper(DATABASE_NAME, 'user-pantry');
-    let itemsFound = 0;
-    let results;
-    results = await itemMapper.findAllItemsByAccount(account);
+    let results = await findAllItemsByAccount(
+        DATABASE_NAME,
+        'user-pantry',
+        account
+    );
     if (results) {
-        itemsFound = results.length;
-        console.log(`${itemsFound} items were found`);
+        console.log(`${results.length} items were found`);
     }
 
     res.status(200).send(results);
