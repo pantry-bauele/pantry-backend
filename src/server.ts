@@ -182,43 +182,34 @@ app.get('/get-account', async (req, res) => {
 });
 
 app.get('/get-all-pantry-items', async (req, res) => {
-    console.log(`Attemping item retrieval using ${req.query.emailAddress}`);
+    console.log(`\nAttemping to get all pantry items with request: `);
+    for (const parameter in req.query) {
+        console.log(`${parameter}: ${req.query[parameter]}`);
+    }
 
-    if (req.query.emailAddress === undefined) {
+    if (!req.query.emailAddress || typeof req.query.emailAddress !== 'string') {
+        res.status(400).send('Request to server sent invalid parameters.');
         return;
     }
 
-    /*  req.query will be a JSON string, so it will need to be parsed
-    and converted back into an Account object. */
-    let data, object, account;
-    data = req.query.emailAddress;
-    if (typeof data === 'string') {
-        console.log('data = ', data);
-
-        //object = JSON.parse(data);
-    } else {
-        const error = new Error('Could not read data sent from client');
-        throw error;
+    let emailAddress = req.query.emailAddress;
+    let accountMapper = new AccountMapper(DATABASE_NAME, 'accounts');
+    let account = await accountMapper.findAccountByEmail(emailAddress);
+    if (!account) {
+        res.status(400).send('Account does not exist.');
+        return;
     }
 
-    let accountMapper = new AccountMapper('pantry-db-dummy', 'accounts');
-    if (typeof req.query.emailAddress === 'string') {
-        account = await accountMapper.findAccountByEmail(
-            req.query.emailAddress
-        );
-    }
-
-    let itemMapper = new ItemMapper();
-    let item = new Item();
-
+    let itemMapper = new ItemMapper(DATABASE_NAME, 'user-pantry');
     let itemsFound = 0;
-    if (account !== undefined && account !== null) {
-        //itemsFound = await itemMapper.findAllItemsByAccount(item, account);
-        itemsFound = await itemMapper.findAllPantryItemsByAccount(account);
+    let results;
+    results = await itemMapper.findAllPantryItemsByAccount(account);
+    if (results) {
+        itemsFound = results.length;
+        console.log(`${itemsFound} items were found`);
     }
 
-    console.log('itemsFound = ', itemsFound);
-    res.send(itemsFound);
+    res.status(200).send(results);
 });
 
 // req.query should be { emailAddress: 'email@domain.com' }
@@ -244,7 +235,6 @@ app.get('/get-all-items', async (req, res) => {
     let itemMapper = new ItemMapper(DATABASE_NAME, 'user-items');
     let itemsFound = 0;
     let results;
-
     results = await itemMapper.findAllItemsByAccount(account);
     if (results) {
         itemsFound = results.length;
