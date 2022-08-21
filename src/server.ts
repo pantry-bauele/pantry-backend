@@ -301,40 +301,39 @@ app.get('/get-item', async (req, res) => {
 });
 
 app.post('/create-item', async (req, res) => {
-    console.log(`Attemping item addition using ${req.query.emailAddress}`);
+    console.log(`\nAttemping to create an item with request: `);
+    logRequestParameters(req.query);
 
     if (
-        req.query.emailAddress === undefined ||
-        req.query.itemObject === undefined
+        !req.query.emailAddress ||
+        typeof req.query.emailAddress !== 'string' ||
+        !req.query.itemObject ||
+        typeof req.query.itemObject !== 'string'
     ) {
+        res.status(400).send('Request to server sent invalid parameters.');
         return;
     }
 
-    let account;
-    let accountMapper = new AccountMapper('pantry-db-dummy', 'accounts');
-    if (typeof req.query.emailAddress === 'string') {
-        account = await accountMapper.findAccountByEmail(
-            req.query.emailAddress
-        );
+    if (!DATABASE_NAME) {
+        res.status(500).send('Fatal server error');
+        return;
     }
 
-    let item;
+    let account = await findAccountByEmail(
+        DATABASE_NAME,
+        req.query.emailAddress
+    );
+    if (!account) {
+        res.status(400).send('Account does not exist.');
+        return;
+    }
+
     let itemBuilder = new ItemBuilder();
-    if (typeof req.query.itemObject === 'string') {
-        item = itemBuilder.buildItem(req.query.itemObject);
-    }
+    let item = itemBuilder.buildItem(req.query.itemObject);
+    let itemMapper = new ItemMapper(DATABASE_NAME, 'user-items');
+    await itemMapper.createItem(item, account);
 
-    let itemMapper = new ItemMapper();
-    if (
-        account !== undefined &&
-        account !== null &&
-        item !== undefined &&
-        item !== null
-    ) {
-        await itemMapper.createItem(item, account);
-    }
-
-    res.send(true);
+    res.status(200).send(true);
 });
 
 app.post('/create-pantry-item', async (req, res) => {
