@@ -154,8 +154,8 @@ export class ItemMapper {
     async findItem(item: Item, itemId: string, account: Account) {
         await this.databaseClient.connect();
         const collection = this.databaseClient
-            .db('pantry-db-dummy')
-            .collection('user-items');
+            .db(this.databaseName)
+            .collection(this.collectionName);
 
         let queryFilter = item.getSpecifiedProperties();
         queryFilter.accountId = account.id;

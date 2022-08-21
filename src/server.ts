@@ -254,50 +254,50 @@ app.get('/get-all-items', async (req, res) => {
 });
 
 app.get('/get-item', async (req, res) => {
-    console.log(`Attemping item retrieval using ${req.query.emailAddress}`);
+    console.log(`\nAttemping to get one item with request: `);
+    logRequestParameters(req.query);
 
     if (
-        req.query.emailAddress === undefined ||
-        req.query.itemId === undefined
+        !req.query.emailAddress ||
+        typeof req.query.emailAddress !== 'string' ||
+        !req.query.itemId ||
+        typeof req.query.itemId !== 'string'
     ) {
+        res.status(400).send('Request to server sent invalid parameters.');
         return;
     }
 
-    /*  req.query will be a JSON string, so it will need to be parsed
-    and converted back into an Account object. */
-    let data, object, account;
-    data = req.query.emailAddress;
-    if (typeof data === 'string') {
-        console.log('data = ', data);
-
-        //object = JSON.parse(data);
-    } else {
-        const error = new Error('Could not read data sent from client');
-        throw error;
+    if (!DATABASE_NAME) {
+        res.status(500).send('Fatal server error');
+        return;
     }
 
-    let accountMapper = new AccountMapper('pantry-db-dummy', 'accounts');
-    if (typeof req.query.emailAddress === 'string') {
-        account = await accountMapper.findAccountByEmail(
-            req.query.emailAddress
-        );
+    let account = await findAccountByEmail(
+        DATABASE_NAME,
+        req.query.emailAddress
+    );
+    if (!account) {
+        res.status(400).send('Account does not exist.');
+        return;
     }
 
-    let itemMapper = new ItemMapper();
+    let itemMapper = new ItemMapper(DATABASE_NAME, 'user-items');
     let item = new Item();
 
-    let itemId: string = '';
-    if (typeof req.query.itemId === 'string') {
-        itemId = req.query.itemId;
+    let results;
+    try {
+        results = await itemMapper.findItem(item, req.query.itemId, account);
+    } catch (error: any) {
+        console.log('Error during /get-item: ', error.message);
+        res.status(500).send('Fatal server database error');
+        return;
     }
 
-    let itemsFound = 0;
-    if (account !== undefined && account !== null) {
-        itemsFound = await itemMapper.findItem(item, itemId, account);
+    if (results) {
+        console.log('Item was found');
     }
 
-    console.log('itemsFound = ', itemsFound);
-    res.send(itemsFound);
+    res.status(200).send(results);
 });
 
 app.post('/create-item', async (req, res) => {
