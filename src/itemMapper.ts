@@ -15,16 +15,21 @@ const DATABASE_URI =
     `mongodb+srv://${DB_USER}:${DB_PASS}` +
     `@cluster0.q4vjj.mongodb.net/pantry-db-dummy?retryWrites=true&w=majority`;
 
-let databaseClient: any;
-
 export class ItemMapper {
-    constructor() {
-        databaseClient = new MongoClient(DATABASE_URI);
+    databaseClient: MongoClient;
+    databaseName: string;
+    collectionName: string;
+
+    constructor(databaseName: string, collectionName: string) {
+        this.databaseClient = new MongoClient(DATABASE_URI);
+
+        this.databaseName = databaseName;
+        this.collectionName = collectionName;
     }
 
     async createItem(item: Item, account: Account) {
-        await databaseClient.connect();
-        const collection = databaseClient
+        await this.databaseClient.connect();
+        const collection = this.databaseClient
             .db('pantry-db-dummy')
             .collection('user-items');
 
@@ -41,7 +46,7 @@ export class ItemMapper {
         };
 
         let result = await collection.insertOne(document);
-        await databaseClient.close();
+        await this.databaseClient.close();
 
         if (result.insertedId) {
             return true;
@@ -51,8 +56,8 @@ export class ItemMapper {
     }
 
     async createPantryItem(pantryItem: PantryItem, account: Account) {
-        await databaseClient.connect();
-        const collection = databaseClient
+        await this.databaseClient.connect();
+        const collection = this.databaseClient
             .db('pantry-db-dummy')
             .collection('user-pantry');
 
@@ -66,7 +71,7 @@ export class ItemMapper {
         };
 
         let result = await collection.insertOne(document);
-        await databaseClient.close();
+        await this.databaseClient.close();
 
         if (result.insertedId) {
             return true;
@@ -76,8 +81,8 @@ export class ItemMapper {
     }
 
     async deleteItem(item: Item, account: Account) {
-        await databaseClient.connect();
-        const collection = databaseClient
+        await this.databaseClient.connect();
+        const collection = this.databaseClient
             .db('pantry-db-dummy')
             .collection('user-items');
 
@@ -90,7 +95,7 @@ export class ItemMapper {
         console.log('queryFilter == ', queryFilter);
 
         let result = await collection.deleteOne(queryFilter);
-        await databaseClient.close();
+        await this.databaseClient.close();
 
         if (result.deletedCount === 1) {
             return true;
@@ -100,8 +105,8 @@ export class ItemMapper {
     }
 
     async deletePantryItem(item: PantryItem, account: Account) {
-        await databaseClient.connect();
-        const collection = databaseClient
+        await this.databaseClient.connect();
+        const collection = this.databaseClient
             .db('pantry-db-dummy')
             .collection('user-pantry');
 
@@ -114,7 +119,7 @@ export class ItemMapper {
         console.log('queryFilter == ', queryFilter);
 
         let result = await collection.deleteOne(queryFilter);
-        await databaseClient.close();
+        await this.databaseClient.close();
 
         if (result.deletedCount === 1) {
             return true;
@@ -126,8 +131,8 @@ export class ItemMapper {
     async findAllPantryItemsByAccount(account: Account) {
         console.log('user pantry');
 
-        await databaseClient.connect();
-        const collection = databaseClient
+        await this.databaseClient.connect();
+        const collection = this.databaseClient
             .db('pantry-db-dummy')
             .collection('user-pantry');
 
@@ -141,36 +146,37 @@ export class ItemMapper {
         } catch (err) {
             console.log(err);
         } finally {
-            await databaseClient.close();
+            await this.databaseClient.close();
             return docs;
         }
     }
 
     //  Find all item in a user's account
-    async findAllItemsByAccount(item: Item, account: Account) {
-        await databaseClient.connect();
-        const collection = databaseClient
-            .db('pantry-db-dummy')
-            .collection('user-items');
+    findAllItemsByAccount = async (account: Account) => {
+        await this.databaseClient.connect();
+        const collection = this.databaseClient
+            .db(this.databaseName)
+            .collection(this.collectionName);
 
-        let queryFilter = item.getSpecifiedProperties();
-        queryFilter.accountId = account.id;
-        //console.log(queryFilter);
+        let queryFilter = { accountId: account.id };
 
         let docs;
         try {
             docs = await collection.find(queryFilter).toArray();
-        } catch (err) {
-            console.log(err);
+        } catch (error) {
+            console.log(
+                'Encounted an error on findAllItemsByAccount(): ',
+                error
+            );
         } finally {
-            await databaseClient.close();
+            await this.databaseClient.close();
             return docs;
         }
-    }
+    };
 
     async findItem(item: Item, itemId: string, account: Account) {
-        await databaseClient.connect();
-        const collection = databaseClient
+        await this.databaseClient.connect();
+        const collection = this.databaseClient
             .db('pantry-db-dummy')
             .collection('user-items');
 
@@ -185,14 +191,14 @@ export class ItemMapper {
         } catch (err) {
             console.log(err);
         } finally {
-            await databaseClient.close();
+            await this.databaseClient.close();
             return docs;
         }
     }
 
     async findItemsAtVendor(vendorName: string, account: Account) {
-        await databaseClient.connect();
-        const collection = databaseClient
+        await this.databaseClient.connect();
+        const collection = this.databaseClient
             .db('pantry-db-dummy')
             .collection('user-items');
 
@@ -207,7 +213,7 @@ export class ItemMapper {
         } catch (err) {
             console.log(err);
         } finally {
-            await databaseClient.close();
+            await this.databaseClient.close();
             return docs;
         }
     }

@@ -241,16 +241,16 @@ app.get('/get-all-items', async (req, res) => {
         return;
     }
 
-    let itemMapper = new ItemMapper();
-    let item = new Item();
-
+    let itemMapper = new ItemMapper(DATABASE_NAME, 'user-items');
     let itemsFound = 0;
-    let results: Item[];
+    let results;
 
-    results = await itemMapper.findAllItemsByAccount(item, account);
-    itemsFound = results.length;
+    results = await itemMapper.findAllItemsByAccount(account);
+    if (results) {
+        itemsFound = results.length;
+        console.log(`${itemsFound} items were found`);
+    }
 
-    console.log('itemsFound = ', itemsFound);
     res.status(200).send(results);
 });
 
