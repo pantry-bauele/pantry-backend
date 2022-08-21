@@ -160,7 +160,7 @@ export class ItemMapper {
 
         let queryFilter = { accountId: account.id };
 
-        let docs;
+        let docs = null;
         try {
             docs = await collection.find(queryFilter).toArray();
         } catch (error) {
