@@ -331,9 +331,15 @@ app.post('/create-item', async (req, res) => {
     let itemBuilder = new ItemBuilder();
     let item = itemBuilder.buildItem(req.query.itemObject);
     let itemMapper = new ItemMapper(DATABASE_NAME, 'user-items');
-    await itemMapper.createItem(item, account);
 
-    res.status(200).send(true);
+    let success = await itemMapper.createItem(item, account);
+    if (success) {
+        console.log('Item created successfully');
+        res.status(200).send(true);
+    } else {
+        console.log('Error creating item');
+        res.status(500).send('Fatal server database error');
+    }
 });
 
 app.post('/create-pantry-item', async (req, res) => {
