@@ -86,8 +86,6 @@ export async function stopServer(server: any) {
     await databaseClient.close();
 }
 
-// General use functions
-
 app.get('/get-test', async (req, res) => {
     res.send('Success!');
 });
@@ -204,7 +202,7 @@ app.get('/get-all-pantry-items', async (req, res) => {
     let itemMapper = new ItemMapper(DATABASE_NAME, 'user-pantry');
     let itemsFound = 0;
     let results;
-    results = await itemMapper.findAllPantryItemsByAccount(account);
+    results = await itemMapper.findAllItemsByAccount(account);
     if (results) {
         itemsFound = results.length;
         console.log(`${itemsFound} items were found`);
