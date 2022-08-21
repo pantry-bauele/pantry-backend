@@ -13,6 +13,7 @@ import { Item } from '../pantry-shared/src/item';
 import { ItemBuilder } from '../pantry-shared/src/itemBuilder';
 import { PantryItemBuilder } from '../pantry-shared/src/pantryItemBuilder';
 import { PantryItem } from '../pantry-shared/src/pantryItem';
+import { ParsedQs } from 'qs';
 
 const envPath = path.join(__dirname, '..', '../.env');
 dotenv.config({ path: envPath });
@@ -84,6 +85,8 @@ export async function stopServer(server: any) {
     await server.close();
     await databaseClient.close();
 }
+
+// General use functions
 
 app.get('/get-test', async (req, res) => {
     res.send('Success!');
@@ -183,9 +186,7 @@ app.get('/get-account', async (req, res) => {
 
 app.get('/get-all-pantry-items', async (req, res) => {
     console.log(`\nAttemping to get all pantry items with request: `);
-    for (const parameter in req.query) {
-        console.log(`${parameter}: ${req.query[parameter]}`);
-    }
+    logRequestParameters(req.query);
 
     if (!req.query.emailAddress || typeof req.query.emailAddress !== 'string') {
         res.status(400).send('Request to server sent invalid parameters.');
@@ -215,18 +216,22 @@ app.get('/get-all-pantry-items', async (req, res) => {
 // req.query should be { emailAddress: 'email@domain.com' }
 app.get('/get-all-items', async (req, res) => {
     console.log(`\nAttemping to get all items with request: `);
-    for (const parameter in req.query) {
-        console.log(`${parameter}: ${req.query[parameter]}`);
-    }
+    logRequestParameters(req.query);
 
     if (!req.query.emailAddress || typeof req.query.emailAddress !== 'string') {
         res.status(400).send('Request to server sent invalid parameters.');
         return;
     }
 
-    let emailAddress = req.query.emailAddress;
-    let accountMapper = new AccountMapper(DATABASE_NAME, 'accounts');
-    let account = await accountMapper.findAccountByEmail(emailAddress);
+    if (!DATABASE_NAME) {
+        res.status(500).send('Fatal server error');
+        return;
+    }
+
+    let account = await findAccountByEmail(
+        DATABASE_NAME,
+        req.query.emailAddress
+    );
     if (!account) {
         res.status(400).send('Account does not exist.');
         return;
@@ -520,3 +525,15 @@ app.post('/delete-pantry-item', async (req, res) => {
 
     res.send(true);
 });
+
+async function findAccountByEmail(databaseName: string, emailAddress: string) {
+    let accountMapper = new AccountMapper(databaseName, 'accounts');
+    let account = await accountMapper.findAccountByEmail(emailAddress);
+    return account;
+}
+
+function logRequestParameters(query: ParsedQs) {
+    for (const parameter in query) {
+        console.log(`${parameter}: ${query[parameter]}`);
+    }
+}
