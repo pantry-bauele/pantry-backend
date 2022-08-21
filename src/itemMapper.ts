@@ -128,28 +128,27 @@ export class ItemMapper {
         }
     }
 
-    async findAllPantryItemsByAccount(account: Account) {
-        console.log('user pantry');
-
+    findAllPantryItemsByAccount = async (account: Account) => {
         await this.databaseClient.connect();
         const collection = this.databaseClient
-            .db('pantry-db-dummy')
-            .collection('user-pantry');
+            .db(this.databaseName)
+            .collection(this.collectionName);
 
-        let queryFilter = { accountId: '' };
-        queryFilter.accountId = account.id;
-        //console.log(queryFilter);
+        let queryFilter = { accountId: account.id };
 
-        let docs;
+        let docs = null;
         try {
             docs = await collection.find(queryFilter).toArray();
-        } catch (err) {
-            console.log(err);
+        } catch (error) {
+            console.log(
+                'Encounted an error on findAllPantryItemsByAccount(): ',
+                error
+            );
         } finally {
             await this.databaseClient.close();
             return docs;
         }
-    }
+    };
 
     //  Find all item in a user's account
     findAllItemsByAccount = async (account: Account) => {
