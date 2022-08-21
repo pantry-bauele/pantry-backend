@@ -13,60 +13,72 @@ import { Item } from '../pantry-shared/src/item';
 import { ItemBuilder } from '../pantry-shared/src/itemBuilder';
 import { PantryItemBuilder } from '../pantry-shared/src/pantryItemBuilder';
 import { PantryItem } from '../pantry-shared/src/pantryItem';
+
 const envPath = path.join(__dirname, '..', '../.env');
 dotenv.config({ path: envPath });
 
+const http = require('node:http');
 const https = require('node:https');
 const fs = require('node:fs');
 
-let path1 = path.join(
+let keyPath = path.join(
     __dirname,
     '..',
     '../../../../etc/letsencrypt/live/bauele.com/privkey.pem'
 );
-let path2 = path.join(
+let certPath = path.join(
     __dirname,
     '..',
     '../../../../etc/letsencrypt/live/bauele.com/fullchain.pem'
 );
-console.log('path1 = ', path1);
-console.log('path2 = ', path2);
 
-const options = {
-    key: fs.readFileSync(path1, 'utf8'),
-    cert: fs.readFileSync(path2, 'utf8'),
-};
+let options: null | { key: string; cert: string } = null;
+try {
+    options = {
+        key: fs.readFileSync(keyPath, 'utf8'),
+        cert: fs.readFileSync(certPath, 'utf8'),
+    };
+} catch (error) {
+    console.log('Error accessing SSL: ', error);
+}
 
 const PORT = process.env.SERVER_PORT;
 const DB_USER = process.env.DB_ADMIN_USER;
 const DB_PASS = process.env.DB_ADMIN_PASS;
+const DATABASE_NAME = process.env.DB_NAME;
 const DATABASE_URI =
     `mongodb+srv://${DB_USER}:${DB_PASS}` +
     `@cluster0.q4vjj.mongodb.net/pantry-db-dummy?retryWrites=true&w=majority`;
 
-let databaseClient: any;
+if (!DATABASE_NAME) {
+    console.log('Error reading database name. Terminating...');
+    process.exit(1);
+}
+
+let databaseClient: MongoClient;
+
 app.use(
     cors({
         origin: '*',
     })
 );
 
-export async function startServer(server: any) {
-    server = https.createServer(options, app).listen(PORT, function () {
-        console.log('Express server listening on port ' + PORT);
-    });
-
-    /*
-    server = await app.listen(PORT, () => {
-        console.log('Now listening on port', PORT);
-    });
-    */
+export const startServer = async (server: any) => {
+    if (options !== null) {
+        server = https.createServer(options, app).listen(PORT, function () {
+            console.log('HTTPS express server listening on port ' + PORT);
+        });
+    } else {
+        server = http.createServer(app).listen(PORT, function () {
+            console.log('HTTP express server listening on port ' + PORT);
+        });
+    }
 
     databaseClient = new MongoClient(DATABASE_URI);
     await databaseClient.connect();
 
     return server;
-}
+};
 
 export async function stopServer(server: any) {
     await server.close();
@@ -96,7 +108,7 @@ app.post('/create-account', async (req, res) => {
         object.firstName,
         object.lastName
     );
-    let accountMapper = new AccountMapper();
+    let accountMapper = new AccountMapper('pantry-db-dummy', 'accounts');
     if (await accountMapper.findAccountByEmail(newAccount.emailAddress)) {
         console.log('Email already registered');
         res.send(false);
@@ -129,7 +141,7 @@ app.post('/delete-account', async (req, res) => {
         object.firstName,
         object.lastName
     );
-    let accountMapper = new AccountMapper();
+    let accountMapper = new AccountMapper('pantry-db-dummy', 'accounts');
     if (await accountMapper.findAccountByEmail(account.emailAddress)) {
         console.log('Deleting account');
         if (await accountMapper.deleteAccount(account)) {
@@ -159,7 +171,7 @@ app.get('/get-account', async (req, res) => {
         throw error;
     }
 
-    let accountMapper = new AccountMapper();
+    let accountMapper = new AccountMapper('pantry-db-dummy', 'accounts');
     account = await accountMapper.findAccountByEmail(data);
     if (account) {
         console.log('accountFound = ', account);
@@ -189,7 +201,7 @@ app.get('/get-all-pantry-items', async (req, res) => {
         throw error;
     }
 
-    let accountMapper = new AccountMapper();
+    let accountMapper = new AccountMapper('pantry-db-dummy', 'accounts');
     if (typeof req.query.emailAddress === 'string') {
         account = await accountMapper.findAccountByEmail(
             req.query.emailAddress
@@ -209,43 +221,37 @@ app.get('/get-all-pantry-items', async (req, res) => {
     res.send(itemsFound);
 });
 
+// req.query should be { emailAddress: 'email@domain.com' }
 app.get('/get-all-items', async (req, res) => {
-    console.log(`Attemping item retrieval using ${req.query.emailAddress}`);
+    console.log(`\nAttemping to get all items with request: `);
+    for (const parameter in req.query) {
+        console.log(`${parameter}: ${req.query[parameter]}`);
+    }
 
-    if (req.query.emailAddress === undefined) {
+    if (!req.query.emailAddress || typeof req.query.emailAddress !== 'string') {
+        res.status(400).send('Request to server sent invalid parameters.');
         return;
     }
 
-    /*  req.query will be a JSON string, so it will need to be parsed
-    and converted back into an Account object. */
-    let data, object, account;
-    data = req.query.emailAddress;
-    if (typeof data === 'string') {
-        console.log('data = ', data);
-
-        //object = JSON.parse(data);
-    } else {
-        const error = new Error('Could not read data sent from client');
-        throw error;
-    }
-
-    let accountMapper = new AccountMapper();
-    if (typeof req.query.emailAddress === 'string') {
-        account = await accountMapper.findAccountByEmail(
-            req.query.emailAddress
-        );
+    let emailAddress = req.query.emailAddress;
+    let accountMapper = new AccountMapper(DATABASE_NAME, 'accounts');
+    let account = await accountMapper.findAccountByEmail(emailAddress);
+    if (!account) {
+        res.status(400).send('Account does not exist.');
+        return;
     }
 
     let itemMapper = new ItemMapper();
     let item = new Item();
 
     let itemsFound = 0;
-    if (account !== undefined && account !== null) {
-        itemsFound = await itemMapper.findAllItemsByAccount(item, account);
-    }
+    let results: Item[];
+
+    results = await itemMapper.findAllItemsByAccount(item, account);
+    itemsFound = results.length;
 
     console.log('itemsFound = ', itemsFound);
-    res.send(itemsFound);
+    res.status(200).send(results);
 });
 
 app.get('/get-item', async (req, res) => {
@@ -271,7 +277,7 @@ app.get('/get-item', async (req, res) => {
         throw error;
     }
 
-    let accountMapper = new AccountMapper();
+    let accountMapper = new AccountMapper('pantry-db-dummy', 'accounts');
     if (typeof req.query.emailAddress === 'string') {
         account = await accountMapper.findAccountByEmail(
             req.query.emailAddress
@@ -306,7 +312,7 @@ app.post('/create-item', async (req, res) => {
     }
 
     let account;
-    let accountMapper = new AccountMapper();
+    let accountMapper = new AccountMapper('pantry-db-dummy', 'accounts');
     if (typeof req.query.emailAddress === 'string') {
         account = await accountMapper.findAccountByEmail(
             req.query.emailAddress
@@ -345,7 +351,7 @@ app.post('/create-pantry-item', async (req, res) => {
     }
 
     let account;
-    let accountMapper = new AccountMapper();
+    let accountMapper = new AccountMapper('pantry-db-dummy', 'accounts');
     if (typeof req.query.emailAddress === 'string') {
         account = await accountMapper.findAccountByEmail(
             req.query.emailAddress
@@ -381,7 +387,7 @@ app.post('/edit-item', async (req, res) => {
     }
 
     let account;
-    let accountMapper = new AccountMapper();
+    let accountMapper = new AccountMapper('pantry-db-dummy', 'accounts');
     if (typeof req.query.emailAddress === 'string') {
         account = await accountMapper.findAccountByEmail(
             req.query.emailAddress
@@ -420,7 +426,7 @@ app.post('/delete-item', async (req, res) => {
     let account, itemName;
     itemName = req.query.itemName;
 
-    let accountMapper = new AccountMapper();
+    let accountMapper = new AccountMapper('pantry-db-dummy', 'accounts');
     if (typeof req.query.emailAddress === 'string') {
         account = await accountMapper.findAccountByEmail(
             req.query.emailAddress
@@ -458,7 +464,7 @@ app.post('/edit-pantry-item', async (req, res) => {
     }
 
     let account;
-    let accountMapper = new AccountMapper();
+    let accountMapper = new AccountMapper('pantry-db-dummy', 'accounts');
     if (typeof req.query.emailAddress === 'string') {
         account = await accountMapper.findAccountByEmail(
             req.query.emailAddress
@@ -497,7 +503,7 @@ app.post('/delete-pantry-item', async (req, res) => {
     let account, itemName;
     itemName = req.query.itemName;
 
-    let accountMapper = new AccountMapper();
+    let accountMapper = new AccountMapper('pantry-db-dummy', 'accounts');
     if (typeof req.query.emailAddress === 'string') {
         account = await accountMapper.findAccountByEmail(
             req.query.emailAddress
