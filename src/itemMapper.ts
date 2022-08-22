@@ -83,16 +83,13 @@ export class ItemMapper {
     async deleteItem(item: Item, account: Account) {
         await this.databaseClient.connect();
         const collection = this.databaseClient
-            .db('pantry-db-dummy')
-            .collection('user-items');
+            .db(this.databaseName)
+            .collection(this.collectionName);
 
         const queryFilter = {
             accountId: account.id,
-            //name: item.name,
             _id: new ObjectId(item.id),
         };
-
-        console.log('queryFilter == ', queryFilter);
 
         let result = await collection.deleteOne(queryFilter);
         await this.databaseClient.close();
