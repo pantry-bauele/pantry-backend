@@ -176,36 +176,54 @@ app.get('/get-test', async (req, res) => {
 });
 
 app.post('/create-account', async (req, res) => {
-    console.log(`Attemping account creation using ${req.query.account}`);
+    console.log(`\nAttemping to create account with request: `);
+    logRequestParameters(req.query);
 
-    /*  req.query will be a JSON string, so it will need to be parsed
-        and converted back into an Account object. */
-    let data, object, newAccount;
-    data = req.query.account;
-    if (typeof data === 'string') {
-        object = JSON.parse(data);
-    } else {
-        const error = new Error('Could not read data sent from client');
-        throw error;
+    if (
+        !req.query.emailAddress ||
+        typeof req.query.emailAddress !== 'string' ||
+        !req.query.firstName ||
+        typeof req.query.firstName !== 'string' ||
+        !req.query.lastName ||
+        typeof req.query.lastName !== 'string'
+    ) {
+        res.status(400).send('Request to server sent invalid parameters.');
+        return;
     }
 
-    newAccount = new Account(
-        object.emailAddress,
-        object.firstName,
-        object.lastName
+    if (!DATABASE_NAME) {
+        res.status(500).send('Fatal server error');
+        return;
+    }
+
+    let existingAccount = await findAccountByEmail(
+        DATABASE_NAME,
+        req.query.emailAddress
+    );
+    if (existingAccount) {
+        res.status(400).send('Account already exists.');
+        return;
+    }
+
+    let newAccount = new Account(
+        req.query.emailAddress,
+        req.query.firstName,
+        req.query.lastName
     );
     let accountMapper = new AccountMapper('pantry-db-dummy', 'accounts');
-    if (await accountMapper.findAccountByEmail(newAccount.emailAddress)) {
-        console.log('Email already registered');
-        res.send(false);
-    } else {
-        console.log('Creating account');
-        if (await accountMapper.createAccount(newAccount)) {
-            res.send(true);
-        } else {
-            res.send(false);
-        }
+    if (!(await accountMapper.createAccount(newAccount))) {
+        res.status(500).send('Account could not be created');
     }
+
+    res.status(200).send('Account successfully created');
+
+    /*
+    if (await accountMapper.createAccount(newAccount)) {
+        res.send(true);
+    } else {
+        res.send(false);
+    }
+    */
 });
 
 app.post('/delete-account', async (req, res) => {
