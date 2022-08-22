@@ -419,41 +419,45 @@ app.post('/create-item', async (req, res) => {
 });
 
 app.post('/create-pantry-item', async (req, res) => {
-    console.log(
-        `Attemping pantry item addition using ${req.query.emailAddress}`
-    );
+    console.log(`\nAttemping to create an item with request: `);
+    logRequestParameters(req.query);
 
     if (
-        req.query.emailAddress === undefined ||
-        req.query.itemObject === undefined
+        !req.query.emailAddress ||
+        typeof req.query.emailAddress !== 'string' ||
+        !req.query.itemObject ||
+        typeof req.query.itemObject !== 'string'
     ) {
+        res.status(400).send('Request to server sent invalid parameters.');
         return;
     }
 
-    let account;
-    let accountMapper = new AccountMapper('pantry-db-dummy', 'accounts');
-    if (typeof req.query.emailAddress === 'string') {
-        account = await accountMapper.findAccountByEmail(
-            req.query.emailAddress
-        );
+    if (!DATABASE_NAME) {
+        res.status(500).send('Fatal server error');
+        return;
+    }
+
+    let account = await findAccountByEmail(
+        DATABASE_NAME,
+        req.query.emailAddress
+    );
+    if (!account) {
+        res.status(400).send('Account does not exist.');
+        return;
     }
 
     let pantryItemBuilder = new PantryItemBuilder();
     let pantryItem = pantryItemBuilder.buildItem(req.query.itemObject);
+    let itemMapper = new ItemMapper(DATABASE_NAME, 'user-pantry');
 
-    console.log('pantryItem = ', pantryItem);
-
-    let itemMapper = new ItemMapper();
-    if (
-        account !== undefined &&
-        account !== null &&
-        pantryItem !== undefined &&
-        pantryItem !== null
-    ) {
-        await itemMapper.createPantryItem(pantryItem, account);
+    let success = await itemMapper.createPantryItem(pantryItem, account);
+    if (success) {
+        console.log('Item created successfully');
+        res.status(200).send(true);
+    } else {
+        console.log('Error creating item');
+        res.status(500).send('Fatal server database error');
     }
-
-    res.send(true);
 });
 
 app.post('/edit-item', async (req, res) => {
