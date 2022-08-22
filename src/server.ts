@@ -1,9 +1,11 @@
 import express from 'express';
+import { Request, Response, NextFunction } from 'express';
 var app = express();
 
 import cors from 'cors';
 import { MongoClient } from 'mongodb';
 import { Account } from './account';
+
 import dotenv from 'dotenv';
 
 import path from 'path';
@@ -21,7 +23,6 @@ dotenv.config({ path: envPath });
 const http = require('node:http');
 const https = require('node:https');
 const fs = require('node:fs');
-
 let keyPath = path.join(
     __dirname,
     '..',
@@ -42,6 +43,13 @@ try {
 } catch (error) {
     console.log('Error accessing SSL: ', error);
 }
+
+import { applicationDefault, initializeApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+
+initializeApp({
+    credential: applicationDefault(),
+});
 
 const PORT = process.env.SERVER_PORT;
 const DB_USER = process.env.DB_ADMIN_USER;
@@ -85,6 +93,74 @@ export async function stopServer(server: any) {
     await server.close();
     await databaseClient.close();
 }
+
+const authenticateUser = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    console.log('\nAttempting to authenticate user with request: ');
+    logRequestParameters(req.query);
+
+    if (
+        !req.query.credentials ||
+        typeof req.query.credentials !== 'string' ||
+        !req.query.emailAddress ||
+        typeof req.query.emailAddress !== 'string'
+    ) {
+        console.log('Request to server sent invalid parameters.');
+        res.status(400).send(
+            'Request did not include authentication credentials.'
+        );
+        return;
+    }
+
+    let credentials;
+    try {
+        credentials = JSON.parse(req.query.credentials);
+    } catch (error: any) {
+        console.log(
+            'Error converting credentials to JSON object: ',
+            error.message
+        );
+        res.status(500).send(
+            'Server encountered an error attempting to read authentication credentials.'
+        );
+        return;
+    }
+
+    let idToken = credentials._tokenResponse.idToken;
+    if (!idToken) {
+        console.log('ID Token not available. Terminating...');
+        res.status(400).send(
+            'Request did not include authentication credentials token.'
+        );
+        return;
+    }
+
+    let credentialsEmailAddress = credentials.user.email;
+    if (!credentialsEmailAddress) {
+        console.log('Credentials email address not available. Terminating...');
+        res.status(400).send(
+            'Request did not include authentication credentials email address.'
+        );
+        return;
+    }
+
+    let requestEmailAddress = req.query.emailAddress;
+    let decodedToken = await getAuth().verifyIdToken(idToken);
+    if (!decodedToken || requestEmailAddress !== credentialsEmailAddress) {
+        console.log(
+            'Credentials email address did not match request email address. Terminating...'
+        );
+        res.status(403).send(
+            'You do not have permission to access this resource.'
+        );
+        return;
+    }
+
+    next();
+};
 
 app.get('/get-test', async (req, res) => {
     res.send('Success!');
@@ -218,7 +294,7 @@ app.get('/get-all-pantry-items', async (req, res) => {
 });
 
 // req.query should be { emailAddress: 'email@domain.com' }
-app.get('/get-all-items', async (req, res) => {
+app.get('/get-all-items', authenticateUser, async (req, res) => {
     console.log(`\nAttemping to get all items with request: `);
     logRequestParameters(req.query);
 
