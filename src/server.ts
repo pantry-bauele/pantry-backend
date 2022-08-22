@@ -511,42 +511,45 @@ app.post('/edit-item', async (req, res) => {
 });
 
 app.post('/delete-item', async (req, res) => {
-    console.log(`Attemping item deletion using ${req.query.emailAddress}`);
+    console.log(`\nAttemping to delete an item with request: `);
+    logRequestParameters(req.query);
 
-    if (req.query.emailAddress === undefined) {
+    if (
+        !req.query.emailAddress ||
+        typeof req.query.emailAddress !== 'string' ||
+        !req.query.itemObject ||
+        typeof req.query.itemObject !== 'string'
+    ) {
+        res.status(400).send('Request to server sent invalid parameters.');
         return;
     }
 
-    /*  req.query will be a JSON string, so it will need to be parsed
-    and converted back into an Account object. */
-    let account, itemName;
-    itemName = req.query.itemName;
-
-    let accountMapper = new AccountMapper('pantry-db-dummy', 'accounts');
-    if (typeof req.query.emailAddress === 'string') {
-        account = await accountMapper.findAccountByEmail(
-            req.query.emailAddress
-        );
+    if (!DATABASE_NAME) {
+        res.status(500).send('Fatal server error');
+        return;
     }
 
-    let itemMapper = new ItemMapper();
-    let item;
+    let account = await findAccountByEmail(
+        DATABASE_NAME,
+        req.query.emailAddress
+    );
+    if (!account) {
+        res.status(400).send('Account does not exist.');
+        return;
+    }
+
     let itemBuilder = new ItemBuilder();
-    if (typeof req.query.itemObject === 'string') {
-        item = itemBuilder.buildItem(req.query.itemObject);
+    let item = itemBuilder.buildItem(req.query.itemObject);
+    let itemMapper = new ItemMapper(DATABASE_NAME, 'user-items');
+
+    let success = await itemMapper.deleteItem(item, account);
+    if (success) {
+        console.log('Item deleted successfully');
+        res.status(200).send(true);
+    } else {
+        console.log('Error deleting item');
+        res.status(500).send('Fatal server database error');
     }
-
-    console.log(item);
-
-    let success;
-    if (account !== undefined && account !== null && item !== undefined) {
-        console.log('account id = ', account.id);
-        account.id = account.id;
-        success = await itemMapper.deleteItem(item, account);
-    }
-    console.log('Success = ', success);
-
-    res.send(true);
 });
 
 app.post('/edit-pantry-item', async (req, res) => {
