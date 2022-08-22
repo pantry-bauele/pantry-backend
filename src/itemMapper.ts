@@ -58,8 +58,8 @@ export class ItemMapper {
     async createPantryItem(pantryItem: PantryItem, account: Account) {
         await this.databaseClient.connect();
         const collection = this.databaseClient
-            .db('pantry-db-dummy')
-            .collection('user-pantry');
+            .db(this.databaseName)
+            .collection(this.collectionName);
 
         let document = {
             _id: new ObjectId(),
