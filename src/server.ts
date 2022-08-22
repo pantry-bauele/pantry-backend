@@ -562,41 +562,55 @@ app.post('/delete-item', async (req, res) => {
 });
 
 app.post('/edit-pantry-item', async (req, res) => {
-    console.log(`Attemping item edit using ${req.query.emailAddress}`);
+    console.log(`\nAttemping to edit an item with request: `);
+    logRequestParameters(req.query);
 
     if (
-        req.query.emailAddress === undefined ||
-        req.query.itemObject === undefined
+        !req.query.emailAddress ||
+        typeof req.query.emailAddress !== 'string' ||
+        !req.query.itemObject ||
+        typeof req.query.itemObject !== 'string'
     ) {
+        res.status(400).send('Request to server sent invalid parameters.');
         return;
     }
 
-    let account;
-    let accountMapper = new AccountMapper('pantry-db-dummy', 'accounts');
-    if (typeof req.query.emailAddress === 'string') {
-        account = await accountMapper.findAccountByEmail(
-            req.query.emailAddress
-        );
+    if (!DATABASE_NAME) {
+        res.status(500).send('Fatal server error');
+        return;
     }
 
-    let pantryItem;
+    let account = await findAccountByEmail(
+        DATABASE_NAME,
+        req.query.emailAddress
+    );
+    if (!account) {
+        res.status(400).send('Account does not exist.');
+        return;
+    }
+
     let pantryItemBuilder = new PantryItemBuilder();
-    if (typeof req.query.itemObject === 'string') {
-        pantryItem = pantryItemBuilder.buildItem(req.query.itemObject);
+    let pantryItem = pantryItemBuilder.buildItem(req.query.itemObject);
+    let itemMapper = new ItemMapper(DATABASE_NAME, 'user-pantry');
+
+    let deleted = await itemMapper.deletePantryItem(pantryItem, account);
+    let created;
+    if (deleted) {
+        created = itemMapper.createPantryItem(pantryItem, account);
     }
 
-    let itemMapper = new ItemMapper();
-    if (
-        account !== undefined &&
-        account !== null &&
-        pantryItem !== undefined &&
-        pantryItem !== null
-    ) {
-        await itemMapper.deletePantryItem(pantryItem, account);
-        await itemMapper.createPantryItem(pantryItem, account);
+    if (created) {
+        console.log('Pantry item edited successfully');
+        res.status(200).send(true);
+    } else if (deleted && !created) {
+        console.log(
+            'Error recreating pantry item after deletion during editing'
+        );
+        res.status(500).send('Fatal server database error');
+    } else if (!deleted) {
+        console.log('Error deleting pantry item during editing');
+        res.status(500).send('Fatal server database error');
     }
-
-    res.send(true);
 });
 
 app.post('/delete-pantry-item', async (req, res) => {
