@@ -242,29 +242,29 @@ app.post('/delete-account', async (req, res) => {
 });
 
 app.get('/get-account', async (req, res) => {
-    console.log(`Attemping account retrieval using ${req.query.emailAddress}`);
+    console.log(`\nAttemping to get account with request: `);
+    logRequestParameters(req.query);
 
-    /*  req.query will be a JSON string, so it will need to be parsed
-    and converted back into an Account object. */
-    let data, object, account;
-    data = req.query.emailAddress;
-    if (typeof data === 'string') {
-        console.log('data = ', data);
-
-        //object = JSON.parse(data);
-    } else {
-        const error = new Error('Could not read data sent from client');
-        throw error;
+    if (!req.query.emailAddress || typeof req.query.emailAddress !== 'string') {
+        res.status(400).send('Request to server sent invalid parameters.');
+        return;
     }
 
-    let accountMapper = new AccountMapper('pantry-db-dummy', 'accounts');
-    account = await accountMapper.findAccountByEmail(data);
-    if (account) {
-        console.log('accountFound = ', account);
-        res.status(200).send(account);
-    } else {
-        res.status(404).send('Could not find account');
+    if (!DATABASE_NAME) {
+        res.status(500).send('Fatal server error');
+        return;
     }
+
+    let account = await findAccountByEmail(
+        DATABASE_NAME,
+        req.query.emailAddress
+    );
+    if (!account) {
+        res.status(404).send('Account does not exist.');
+        return;
+    }
+
+    res.status(200).send('Account successfully found');
 });
 
 app.get('/get-all-pantry-items', async (req, res) => {
