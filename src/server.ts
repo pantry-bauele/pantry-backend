@@ -148,7 +148,16 @@ const authenticateUser = async (
     }
 
     let requestEmailAddress = req.query.emailAddress;
-    let decodedToken = await getAuth().verifyIdToken(idToken);
+    // This will throw an error when the user's token expires, and all requests
+    // will be denied afterwards. A check needs to be implemented on the client
+    // to refresh the token and send the new one with requests.
+    let decodedToken;
+    try {
+        decodedToken = await getAuth().verifyIdToken(idToken);
+    } catch (error: any) {
+        console.log('Error validating token: ', error.message);
+    }
+
     if (!decodedToken || requestEmailAddress !== credentialsEmailAddress) {
         console.log(
             'Credentials email address did not match request email address. Terminating...'
@@ -591,43 +600,45 @@ app.post('/edit-pantry-item', async (req, res) => {
 });
 
 app.post('/delete-pantry-item', async (req, res) => {
-    console.log(`Attemping item deletion using ${req.query.emailAddress}`);
+    console.log(`\nAttemping to delete a pantry item with request: `);
+    logRequestParameters(req.query);
 
-    if (req.query.emailAddress === undefined) {
+    if (
+        !req.query.emailAddress ||
+        typeof req.query.emailAddress !== 'string' ||
+        !req.query.itemObject ||
+        typeof req.query.itemObject !== 'string'
+    ) {
+        res.status(400).send('Request to server sent invalid parameters.');
         return;
     }
 
-    /*  req.query will be a JSON string, so it will need to be parsed
-    and converted back into an Account object. */
-    let account, itemName;
-    itemName = req.query.itemName;
-
-    let accountMapper = new AccountMapper('pantry-db-dummy', 'accounts');
-    if (typeof req.query.emailAddress === 'string') {
-        account = await accountMapper.findAccountByEmail(
-            req.query.emailAddress
-        );
+    if (!DATABASE_NAME) {
+        res.status(500).send('Fatal server error');
+        return;
     }
 
-    let itemMapper = new ItemMapper();
+    let account = await findAccountByEmail(
+        DATABASE_NAME,
+        req.query.emailAddress
+    );
+    if (!account) {
+        res.status(400).send('Account does not exist.');
+        return;
+    }
+
     let pantryItemBuilder = new PantryItemBuilder();
     let pantryItem = pantryItemBuilder.buildItem(req.query.itemObject);
+    let itemMapper = new ItemMapper(DATABASE_NAME, 'user-pantry');
 
-    if (typeof req.query.itemObject === 'string') {
-        //item = itemBuilder.buildItem(req.query.itemObject);
+    let success = await itemMapper.deletePantryItem(pantryItem, account);
+    if (success) {
+        console.log('Item deleted successfully');
+        res.status(200).send(true);
+    } else {
+        console.log('Error deleting item');
+        res.status(500).send('Fatal server database error');
     }
-
-    console.log(pantryItem);
-
-    let success;
-    if (account !== undefined && account !== null && pantryItem !== undefined) {
-        console.log('account id = ', account.id);
-        account.id = account.id;
-        success = await itemMapper.deletePantryItem(pantryItem, account);
-    }
-    console.log('Success = ', success);
-
-    res.send(true);
 });
 
 async function findAllItemsByAccount(
