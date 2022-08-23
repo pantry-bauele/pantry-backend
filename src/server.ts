@@ -89,10 +89,10 @@ export const startServer = async (server: any) => {
     return server;
 };
 
-export async function stopServer(server: any) {
+export const stopServer = async (server: any) => {
     await server.close();
     await databaseClient.close();
-}
+};
 
 const authenticateUser = async (
     req: Request,
@@ -639,25 +639,28 @@ app.post('/edit-pantry-item', authenticateUser, async (req, res) => {
     }
 });
 
-async function findAllItemsByAccount(
+const findAllItemsByAccount = async (
     databaseName: string,
     collectionName: string,
     account: Account
-) {
+) => {
     let itemMapper = new ItemMapper(databaseName, collectionName);
     let results;
     results = await itemMapper.findAllItemsByAccount(account);
     return results;
-}
+};
 
-async function findAccountByEmail(databaseName: string, emailAddress: string) {
+const findAccountByEmail = async (
+    databaseName: string,
+    emailAddress: string
+) => {
     let accountMapper = new AccountMapper(databaseName, 'accounts');
     let account = await accountMapper.findAccountByEmail(emailAddress);
     return account;
-}
+};
 
-function logRequestParameters(query: ParsedQs) {
+const logRequestParameters = (query: ParsedQs) => {
     for (const parameter in query) {
         console.log(`${parameter}: ${query[parameter]}`);
     }
-}
+};
