@@ -252,7 +252,7 @@ app.get('/get-account', async (req, res) => {
     res.status(200).send('Account successfully found');
 });
 
-app.get('/get-all-pantry-items', async (req, res) => {
+app.get('/get-all-pantry-items', authenticateUser, async (req, res) => {
     console.log(`\nAttemping to get all pantry items with request: `);
     logRequestParameters(req.query);
 
@@ -287,7 +287,6 @@ app.get('/get-all-pantry-items', async (req, res) => {
     res.status(200).send(results);
 });
 
-// req.query should be { emailAddress: 'email@domain.com' }
 app.get('/get-all-items', authenticateUser, async (req, res) => {
     console.log(`\nAttemping to get all items with request: `);
     logRequestParameters(req.query);
@@ -323,7 +322,7 @@ app.get('/get-all-items', authenticateUser, async (req, res) => {
     res.status(200).send(results);
 });
 
-app.get('/get-item', async (req, res) => {
+app.get('/get-item', authenticateUser, async (req, res) => {
     console.log(`\nAttemping to get one item with request: `);
     logRequestParameters(req.query);
 
@@ -370,7 +369,7 @@ app.get('/get-item', async (req, res) => {
     res.status(200).send(results);
 });
 
-app.post('/create-item', async (req, res) => {
+app.post('/create-item', authenticateUser, async (req, res) => {
     console.log(`\nAttemping to create an item with request: `);
     logRequestParameters(req.query);
 
@@ -412,7 +411,7 @@ app.post('/create-item', async (req, res) => {
     }
 });
 
-app.post('/create-pantry-item', async (req, res) => {
+app.post('/create-pantry-item', authenticateUser, async (req, res) => {
     console.log(`\nAttemping to create an item with request: `);
     logRequestParameters(req.query);
 
@@ -454,7 +453,91 @@ app.post('/create-pantry-item', async (req, res) => {
     }
 });
 
-app.post('/edit-item', async (req, res) => {
+app.post('/delete-item', authenticateUser, async (req, res) => {
+    console.log(`\nAttemping to delete an item with request: `);
+    logRequestParameters(req.query);
+
+    if (
+        !req.query.emailAddress ||
+        typeof req.query.emailAddress !== 'string' ||
+        !req.query.itemObject ||
+        typeof req.query.itemObject !== 'string'
+    ) {
+        res.status(400).send('Request to server sent invalid parameters.');
+        return;
+    }
+
+    if (!DATABASE_NAME) {
+        res.status(500).send('Fatal server error');
+        return;
+    }
+
+    let account = await findAccountByEmail(
+        DATABASE_NAME,
+        req.query.emailAddress
+    );
+    if (!account) {
+        res.status(400).send('Account does not exist.');
+        return;
+    }
+
+    let itemBuilder = new ItemBuilder();
+    let item = itemBuilder.buildItem(req.query.itemObject);
+    let itemMapper = new ItemMapper(DATABASE_NAME, 'user-items');
+
+    let success = await itemMapper.deleteItem(item, account);
+    if (success) {
+        console.log('Item deleted successfully');
+        res.status(200).send(true);
+    } else {
+        console.log('Error deleting item');
+        res.status(500).send('Fatal server database error');
+    }
+});
+
+app.post('/delete-pantry-item', authenticateUser, async (req, res) => {
+    console.log(`\nAttemping to delete a pantry item with request: `);
+    logRequestParameters(req.query);
+
+    if (
+        !req.query.emailAddress ||
+        typeof req.query.emailAddress !== 'string' ||
+        !req.query.itemObject ||
+        typeof req.query.itemObject !== 'string'
+    ) {
+        res.status(400).send('Request to server sent invalid parameters.');
+        return;
+    }
+
+    if (!DATABASE_NAME) {
+        res.status(500).send('Fatal server error');
+        return;
+    }
+
+    let account = await findAccountByEmail(
+        DATABASE_NAME,
+        req.query.emailAddress
+    );
+    if (!account) {
+        res.status(400).send('Account does not exist.');
+        return;
+    }
+
+    let pantryItemBuilder = new PantryItemBuilder();
+    let pantryItem = pantryItemBuilder.buildItem(req.query.itemObject);
+    let itemMapper = new ItemMapper(DATABASE_NAME, 'user-pantry');
+
+    let success = await itemMapper.deletePantryItem(pantryItem, account);
+    if (success) {
+        console.log('Item deleted successfully');
+        res.status(200).send(true);
+    } else {
+        console.log('Error deleting item');
+        res.status(500).send('Fatal server database error');
+    }
+});
+
+app.post('/edit-item', authenticateUser, async (req, res) => {
     console.log(`\nAttemping to edit an item with request: `);
     logRequestParameters(req.query);
 
@@ -504,49 +587,7 @@ app.post('/edit-item', async (req, res) => {
     }
 });
 
-app.post('/delete-item', async (req, res) => {
-    console.log(`\nAttemping to delete an item with request: `);
-    logRequestParameters(req.query);
-
-    if (
-        !req.query.emailAddress ||
-        typeof req.query.emailAddress !== 'string' ||
-        !req.query.itemObject ||
-        typeof req.query.itemObject !== 'string'
-    ) {
-        res.status(400).send('Request to server sent invalid parameters.');
-        return;
-    }
-
-    if (!DATABASE_NAME) {
-        res.status(500).send('Fatal server error');
-        return;
-    }
-
-    let account = await findAccountByEmail(
-        DATABASE_NAME,
-        req.query.emailAddress
-    );
-    if (!account) {
-        res.status(400).send('Account does not exist.');
-        return;
-    }
-
-    let itemBuilder = new ItemBuilder();
-    let item = itemBuilder.buildItem(req.query.itemObject);
-    let itemMapper = new ItemMapper(DATABASE_NAME, 'user-items');
-
-    let success = await itemMapper.deleteItem(item, account);
-    if (success) {
-        console.log('Item deleted successfully');
-        res.status(200).send(true);
-    } else {
-        console.log('Error deleting item');
-        res.status(500).send('Fatal server database error');
-    }
-});
-
-app.post('/edit-pantry-item', async (req, res) => {
+app.post('/edit-pantry-item', authenticateUser, async (req, res) => {
     console.log(`\nAttemping to edit an item with request: `);
     logRequestParameters(req.query);
 
@@ -594,48 +635,6 @@ app.post('/edit-pantry-item', async (req, res) => {
         res.status(500).send('Fatal server database error');
     } else if (!deleted) {
         console.log('Error deleting pantry item during editing');
-        res.status(500).send('Fatal server database error');
-    }
-});
-
-app.post('/delete-pantry-item', async (req, res) => {
-    console.log(`\nAttemping to delete a pantry item with request: `);
-    logRequestParameters(req.query);
-
-    if (
-        !req.query.emailAddress ||
-        typeof req.query.emailAddress !== 'string' ||
-        !req.query.itemObject ||
-        typeof req.query.itemObject !== 'string'
-    ) {
-        res.status(400).send('Request to server sent invalid parameters.');
-        return;
-    }
-
-    if (!DATABASE_NAME) {
-        res.status(500).send('Fatal server error');
-        return;
-    }
-
-    let account = await findAccountByEmail(
-        DATABASE_NAME,
-        req.query.emailAddress
-    );
-    if (!account) {
-        res.status(400).send('Account does not exist.');
-        return;
-    }
-
-    let pantryItemBuilder = new PantryItemBuilder();
-    let pantryItem = pantryItemBuilder.buildItem(req.query.itemObject);
-    let itemMapper = new ItemMapper(DATABASE_NAME, 'user-pantry');
-
-    let success = await itemMapper.deletePantryItem(pantryItem, account);
-    if (success) {
-        console.log('Item deleted successfully');
-        res.status(200).send(true);
-    } else {
-        console.log('Error deleting item');
         res.status(500).send('Fatal server database error');
     }
 });
