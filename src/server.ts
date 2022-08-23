@@ -103,62 +103,29 @@ const authenticateUser = async (
     logRequestParameters(req.query);
 
     if (
-        !req.query.credentials ||
-        typeof req.query.credentials !== 'string' ||
+        !req.query.idToken ||
+        typeof req.query.idToken !== 'string' ||
         !req.query.emailAddress ||
         typeof req.query.emailAddress !== 'string'
     ) {
         console.log('Request to server sent invalid parameters.');
-        res.status(400).send(
-            'Request did not include authentication credentials.'
-        );
+        res.status(400).send('Request did not include ID Token.');
         return;
     }
 
-    let credentials;
-    try {
-        credentials = JSON.parse(req.query.credentials);
-    } catch (error: any) {
-        console.log(
-            'Error converting credentials to JSON object: ',
-            error.message
-        );
-        res.status(500).send(
-            'Server encountered an error attempting to read authentication credentials.'
-        );
-        return;
-    }
-
-    let idToken = credentials._tokenResponse.idToken;
-    if (!idToken) {
-        console.log('ID Token not available. Terminating...');
-        res.status(400).send(
-            'Request did not include authentication credentials token.'
-        );
-        return;
-    }
-
-    let credentialsEmailAddress = credentials.user.email;
-    if (!credentialsEmailAddress) {
-        console.log('Credentials email address not available. Terminating...');
-        res.status(400).send(
-            'Request did not include authentication credentials email address.'
-        );
-        return;
-    }
-
+    let idToken = req.query.idToken;
     let requestEmailAddress = req.query.emailAddress;
-    // This will throw an error when the user's token expires, and all requests
-    // will be denied afterwards. A check needs to be implemented on the client
-    // to refresh the token and send the new one with requests.
+
     let decodedToken;
+    let decodedEmailAddress;
     try {
         decodedToken = await getAuth().verifyIdToken(idToken);
+        decodedEmailAddress = decodedToken.email;
     } catch (error: any) {
         console.log('Error validating token: ', error.message);
     }
 
-    if (!decodedToken || requestEmailAddress !== credentialsEmailAddress) {
+    if (!decodedToken || requestEmailAddress !== decodedEmailAddress) {
         console.log(
             'Credentials email address did not match request email address. Terminating...'
         );
