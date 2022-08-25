@@ -1,4 +1,4 @@
-import { startServer, stopServer } from './server';
+import { startServer } from './server';
 
 async function allowConnections() {
     let s;
