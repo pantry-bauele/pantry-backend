@@ -23,13 +23,11 @@ const https = require('node:https');
 const fs = require('node:fs');
 let keyPath = path.join(
     __dirname,
-    '..',
-    '../../../../etc/letsencrypt/live/bauele.com/privkey.pem'
+    '../../../../../etc/letsencrypt/live/bauele.com/privkey.pem'
 );
 let certPath = path.join(
     __dirname,
-    '..',
-    '../../../../etc/letsencrypt/live/bauele.com/fullchain.pem'
+    '../../../../../etc/letsencrypt/live/bauele.com/fullchain.pem'
 );
 
 let options: null | { key: string; cert: string } = null;
