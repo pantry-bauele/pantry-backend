@@ -39,6 +39,7 @@ try {
     };
 } catch (error) {
     console.log('Error accessing SSL: ', error);
+    console.log('Continuing without HTTPS');
 }
 
 import { applicationDefault, initializeApp } from 'firebase-admin/app';
@@ -63,9 +64,14 @@ if (!DATABASE_NAME) {
 
 let databaseClient: MongoClient;
 
+const ORIGIN = process.env.SERVER_CORS_ORIGIN;
+if (!ORIGIN) {
+    console.log('No CORS origin was found. Terminating...');
+    process.exit(1);
+}
 app.use(
     cors({
-        origin: '*',
+        origin: ORIGIN,
     })
 );
 
