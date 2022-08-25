@@ -66,7 +66,7 @@ export class ItemMapper {
             accountId: account.id,
 
             item: pantryItem.getBaseItem(),
-            availableQuantity: pantryItem.getAvailableQuantity(),
+            availableBaseQuantity: pantryItem.getAvailableBaseQuantity(),
             expirationDate: pantryItem.getExpirationDate(),
         };
 
