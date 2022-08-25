@@ -45,8 +45,17 @@ try {
 import { applicationDefault, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 
+var admin = require('firebase-admin');
+
+const FIREBASE_SERVICE_ACCOUNT = process.env.FIREBASE_SERVICE_KEY_PATH;
+if (!FIREBASE_SERVICE_ACCOUNT) {
+    console.log('Not authorized as a Firebase Admin. Terminating...');
+    process.exit(1);
+}
+
+const serviceAccount = path.join(__dirname, '../..', FIREBASE_SERVICE_ACCOUNT);
 initializeApp({
-    credential: applicationDefault(),
+    credential: admin.credential.cert(serviceAccount),
 });
 
 const PORT = process.env.SERVER_PORT;
