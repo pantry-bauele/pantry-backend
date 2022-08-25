@@ -21,14 +21,15 @@ dotenv.config({ path: envPath });
 const http = require('node:http');
 const https = require('node:https');
 const fs = require('node:fs');
-let keyPath = path.join(
-    __dirname,
-    '../../../../../etc/letsencrypt/live/bauele.com/privkey.pem'
-);
-let certPath = path.join(
-    __dirname,
-    '../../../../../etc/letsencrypt/live/bauele.com/fullchain.pem'
-);
+
+const PRIVKEY = process.env.SERVER_SSL_PRIVKEY_PATH;
+const FULLCHAIN = process.env.SERVER_SSL_FULLCHAIN_PATH;
+
+let keyPath, certPath;
+if (PRIVKEY && FULLCHAIN) {
+    keyPath = path.join(__dirname, PRIVKEY);
+    certPath = path.join(__dirname, FULLCHAIN);
+}
 
 let options: null | { key: string; cert: string } = null;
 try {
