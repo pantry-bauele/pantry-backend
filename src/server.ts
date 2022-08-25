@@ -102,19 +102,25 @@ const authenticateUser = async (
     console.log('\nAttempting to authenticate user with request: ');
     logRequestParameters(req.query);
 
-    if (
-        !req.query.idToken ||
-        typeof req.query.idToken !== 'string' ||
-        !req.query.emailAddress ||
-        typeof req.query.emailAddress !== 'string'
-    ) {
-        console.log('Request to server sent invalid parameters.');
-        res.status(400).send('Request did not include ID Token.');
+    if (!req.headers['authentication-token']) {
+        res.status(400).send('Header did not include ID Token.');
         return;
     }
 
-    let idToken = req.query.idToken;
+    if (!req.query.emailAddress || typeof req.query.emailAddress !== 'string') {
+        console.log('Request to server sent invalid email address.');
+        res.status(400).send('Request to server sent invalid email address.');
+        return;
+    }
+
     let requestEmailAddress = req.query.emailAddress;
+    let idToken = req.headers['authentication-token'];
+
+    if (typeof idToken !== 'string') {
+        console.log('Request to server sent invalid ID Token.');
+        res.status(400).send('Request to server sent invalid ID Token.');
+        return;
+    }
 
     let decodedToken;
     let decodedEmailAddress;
