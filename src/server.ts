@@ -7,14 +7,12 @@ import { MongoClient } from 'mongodb';
 import { Account } from './account';
 
 import dotenv from 'dotenv';
-
 import path from 'path';
 import { AccountMapper } from './accountMapper';
 import { ItemMapper } from './itemMapper';
 import { Item } from '../pantry-shared/src/item';
 import { ItemBuilder } from '../pantry-shared/src/itemBuilder';
 import { PantryItemBuilder } from '../pantry-shared/src/pantryItemBuilder';
-import { PantryItem } from '../pantry-shared/src/pantryItem';
 import { ParsedQs } from 'qs';
 
 const envPath = path.join(__dirname, '..', '../.env');
@@ -189,14 +187,6 @@ app.post('/create-account', async (req, res) => {
     }
 
     res.status(200).send('Account successfully created');
-
-    /*
-    if (await accountMapper.createAccount(newAccount)) {
-        res.send(true);
-    } else {
-        res.send(false);
-    }
-    */
 });
 
 app.post('/delete-account', async (req, res) => {
