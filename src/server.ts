@@ -37,8 +37,8 @@ try {
         key: fs.readFileSync(keyPath, 'utf8'),
         cert: fs.readFileSync(certPath, 'utf8'),
     };
-} catch (error) {
-    console.log('Error accessing SSL: ', error);
+} catch (error: any) {
+    console.log('Error accessing SSL certificates:', error.message);
     console.log('Continuing without HTTPS');
 }
 
@@ -49,7 +49,9 @@ var admin = require('firebase-admin');
 
 const FIREBASE_SERVICE_ACCOUNT = process.env.FIREBASE_SERVICE_KEY_PATH;
 if (!FIREBASE_SERVICE_ACCOUNT) {
-    console.log('Not authorized as a Firebase Admin. Terminating...');
+    console.log(
+        'Firebase credential not found. Please check your path and try again. Terminating.'
+    );
     process.exit(1);
 }
 
@@ -66,8 +68,8 @@ const DATABASE_URI =
     `mongodb+srv://${DB_USER}:${DB_PASS}` +
     `@cluster0.q4vjj.mongodb.net/pantry-db-dummy?retryWrites=true&w=majority`;
 
-if (!DATABASE_NAME) {
-    console.log('Error reading database name. Terminating...');
+if (!DATABASE_NAME || !DB_USER || !DB_PASS) {
+    console.log('Error reading database credentials. Terminating.');
     process.exit(1);
 }
 
